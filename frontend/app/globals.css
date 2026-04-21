@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --arc-cyan: #00e5ff; --arc-purple: #a855f7; --arc-dark: #0a0a0f; }
+
+* { box-sizing: border-box; }
+body { background: var(--arc-dark); color: #e2e8f0; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+
+.neon-text    { text-shadow: 0 0 10px var(--arc-cyan), 0 0 20px var(--arc-cyan); }
+.neon-border  { box-shadow: 0 0 8px var(--arc-cyan)33, inset 0 0 8px var(--arc-cyan)11; }
+.neon-green   { color: #22c55e; text-shadow: 0 0 8px #22c55e80; }
+.neon-purple  { color: var(--arc-purple); text-shadow: 0 0 8px var(--arc-purple)80; }
+.card-bg      { background: #0f0f1a; border: 1px solid #1e1e3f; }
+.tx-row:hover { background: #1a1a2e; transition: all 0.2s; }
+.grid-bg {
+  background-image: linear-gradient(#00e5ff08 1px, transparent 1px), linear-gradient(90deg, #00e5ff08 1px, transparent 1px);
+  background-size: 40px 40px;
+}
