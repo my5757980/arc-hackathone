@@ -138,3 +138,4 @@ Set `NEXT_PUBLIC_API_URL` to your Railway backend URL in Vercel env vars.
 
 Built with Circle Nanopayments + Arc EVM L1 + Gemini Flash
 Agentic Economy on Arc Hackathon 2026
+"# arc-hackathone" 
