@@ -30,7 +30,7 @@ class BaseAgent(ABC):
 
     def __init__(self, config: AgentConfig):
         self.config = config
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
         self._tasks_completed = 0
 
     @property

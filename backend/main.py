@@ -6,7 +6,11 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,11 +47,11 @@ async def seed_agent_wallets(session):
         return
 
     demo_wallets = [
-        AgentWallet(agent_name="Orchestrator", circle_wallet_id="demo-orchestrator", wallet_address="0x1111111111111111111111111111111111111111", balance_usdc=100.0),
-        AgentWallet(agent_name="DataAnalyst",  circle_wallet_id="demo-data-analyst", wallet_address="0x2222222222222222222222222222222222222222", balance_usdc=50.0),
-        AgentWallet(agent_name="ContentWriter",circle_wallet_id="demo-content-writer",wallet_address="0x3333333333333333333333333333333333333333", balance_usdc=50.0),
-        AgentWallet(agent_name="CodeReviewer", circle_wallet_id="demo-code-reviewer", wallet_address="0x4444444444444444444444444444444444444444", balance_usdc=50.0),
-        AgentWallet(agent_name="Translator",   circle_wallet_id="demo-translator",    wallet_address="0x5555555555555555555555555555555555555555", balance_usdc=50.0),
+        AgentWallet(agent_name="Orchestrator", circle_wallet_id=os.getenv("ORCHESTRATOR_WALLET_ID", "8137508b-a29f-5795-ad11-f1e08aa0bedd"), wallet_address=os.getenv("ORCHESTRATOR_WALLET_ADDRESS", "0x1919ed21ea0c7c56e2a89eb998333395fda5c81e"), balance_usdc=100.0),
+        AgentWallet(agent_name="DataAnalyst",  circle_wallet_id=os.getenv("DATA_ANALYST_WALLET_ID",  "76bd15c1-d9c6-58c4-ab78-b8323bd66e15"), wallet_address=os.getenv("DATA_ANALYST_WALLET_ADDRESS",  "0x059ac920d925896cf8b08f9fe9eeae1b7ac625d7"), balance_usdc=50.0),
+        AgentWallet(agent_name="ContentWriter",circle_wallet_id=os.getenv("CONTENT_WRITER_WALLET_ID","32493bbc-b42a-56ef-a9dd-cc3ea7b8b0da"), wallet_address=os.getenv("CONTENT_WRITER_WALLET_ADDRESS","0xf66ec96a7c0ca6a6736ccbc989b6226a9cde43f7"), balance_usdc=50.0),
+        AgentWallet(agent_name="CodeReviewer", circle_wallet_id=os.getenv("CODE_REVIEWER_WALLET_ID", "12e692a6-f5be-5740-910b-2415a9b245fd"), wallet_address=os.getenv("CODE_REVIEWER_WALLET_ADDRESS", "0x7b022ac63b55b42ee388e2341205f3215098b7f2"), balance_usdc=50.0),
+        AgentWallet(agent_name="Translator",   circle_wallet_id=os.getenv("TRANSLATOR_WALLET_ID",    "b44632f8-f56b-57d4-a1c6-7e224e69474d"), wallet_address=os.getenv("TRANSLATOR_WALLET_ADDRESS",    "0x0f1d54b006fa65b1d3afbbac65f2d9dc816b9bbf"), balance_usdc=50.0),
     ]
     for w in demo_wallets:
         session.add(w)
@@ -68,14 +72,14 @@ async def lifespan(app: FastAPI):
 
     # Build agents
     agents = {
-        "DataAnalyst":   DataAnalystAgent(wallet_address=wallets.get("DataAnalyst", AgentWallet(wallet_address="0x2222222222222222222222222222222222222222")).wallet_address),
-        "ContentWriter": ContentWriterAgent(wallet_address=wallets.get("ContentWriter", AgentWallet(wallet_address="0x3333333333333333333333333333333333333333")).wallet_address),
-        "CodeReviewer":  CodeReviewerAgent(wallet_address=wallets.get("CodeReviewer", AgentWallet(wallet_address="0x4444444444444444444444444444444444444444")).wallet_address),
-        "Translator":    TranslatorAgent(wallet_address=wallets.get("Translator", AgentWallet(wallet_address="0x5555555555555555555555555555555555555555")).wallet_address),
+        "DataAnalyst":   DataAnalystAgent(wallet_address=wallets.get("DataAnalyst", AgentWallet(wallet_address=os.getenv("DATA_ANALYST_WALLET_ADDRESS", "0x059ac920d925896cf8b08f9fe9eeae1b7ac625d7"))).wallet_address),
+        "ContentWriter": ContentWriterAgent(wallet_address=wallets.get("ContentWriter", AgentWallet(wallet_address=os.getenv("CONTENT_WRITER_WALLET_ADDRESS", "0xf66ec96a7c0ca6a6736ccbc989b6226a9cde43f7"))).wallet_address),
+        "CodeReviewer":  CodeReviewerAgent(wallet_address=wallets.get("CodeReviewer", AgentWallet(wallet_address=os.getenv("CODE_REVIEWER_WALLET_ADDRESS", "0x7b022ac63b55b42ee388e2341205f3215098b7f2"))).wallet_address),
+        "Translator":    TranslatorAgent(wallet_address=wallets.get("Translator", AgentWallet(wallet_address=os.getenv("TRANSLATOR_WALLET_ADDRESS", "0x0f1d54b006fa65b1d3afbbac65f2d9dc816b9bbf"))).wallet_address),
     }
     orchestrator = OrchestratorAgent()
     orchestrator.register_agents(agents)
-    os.environ.setdefault("ORCHESTRATOR_WALLET_ADDRESS", "0x1111111111111111111111111111111111111111")
+    os.environ.setdefault("ORCHESTRATOR_WALLET_ADDRESS", os.getenv("ORCHESTRATOR_WALLET_ADDRESS", "0x1919ed21ea0c7c56e2a89eb998333395fda5c81e"))
     yield
 
 

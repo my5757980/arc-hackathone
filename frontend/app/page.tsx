@@ -1,5 +1,7 @@
+/// <reference types="react" />;
+
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Zap, Activity, DollarSign, Bot, Play, ExternalLink } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";

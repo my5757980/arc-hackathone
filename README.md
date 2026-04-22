@@ -43,7 +43,7 @@ AgentFlow is an autonomous AI agent marketplace:
 | Payments      | Circle Nanopayments API                 |
 | Wallets       | Circle Programmable Wallets             |
 | Protocol      | x402 HTTP Payment Standard             |
-| AI            | Gemini Flash (gemini-2.0-flash)         |
+| AI            | Gemini Flash (gemini-2.5-flash)               |
 | Backend       | Python 3.11 + FastAPI + uv              |
 | Frontend      | Next.js 15 + Tailwind CSS               |
 | Database      | Neon PostgreSQL (serverless)            |
@@ -77,7 +77,7 @@ docker compose up
 # Backend
 cd backend
 uv sync
-uv run uvicorn main:app --reload --port 8000
+uv run uvicorn backend.main:app --reload --port 8000
 
 # Frontend (new terminal)
 cd frontend
