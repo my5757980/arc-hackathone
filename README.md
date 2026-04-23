@@ -160,6 +160,16 @@ agentflow/
 - **Wallet Set:** 5 wallets on ARC-TESTNET, each funded with 20 USDC via testnet faucet
 - **Nanopayments:** Code correctly calls `/v1/nanopayments/payments`. Arc testnet endpoint returns 404 (infrastructure not yet stable). Falls back to Circle DCW transfer automatically — real Arc onchain transactions still generated.
 - **x402 Protocol:** Fully implemented for agent-to-agent HTTP payment negotiation
+- **Arc EVM:** Chain ID 60000, RPC `https://rpc.arc.circle.com/testnet`
+- **Gas format (Arc-specific):** Top-level `gasLimit=100000, priorityFee=1, maxFee=25` — NOT the nested `fee.config.feeLevel` format (Circle docs show generic EVM format; Arc testnet requires EIP-1559 style top-level fields)
+
+---
+
+## Verify Transactions On-Chain
+
+- **Arc Testnet Explorer (Blockscout):** https://testnet.arcscan.app
+- **Circle Console:** https://console.circle.com (Wallet Set → Transactions)
+- All tx hashes in the live feed link directly to `testnet.arcscan.app/tx/<hash>`
 
 ---
 

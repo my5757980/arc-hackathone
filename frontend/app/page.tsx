@@ -280,7 +280,7 @@ export default function Dashboard() {
                     </td>
                     <td style={{ padding: "7px 12px", fontFamily: "monospace" }}>
                       <a
-                        href={`https://explorer.arc.circle.com/tx/${tx.tx_hash}`}
+                        href={`https://testnet.arcscan.app/tx/${tx.tx_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: "#00e5ff", textDecoration: "none" }}

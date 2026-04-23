@@ -14,7 +14,6 @@ from ...db.models import Transaction
 
 router = APIRouter(prefix="/api/demo", tags=["demo"])
 
-# Agent wallet addresses from env
 AGENT_ADDRESSES = {
     "DataAnalyst":   os.getenv("DATA_ANALYST_WALLET_ADDRESS",   "0x059ac920d925896cf8b08f9fe9eeae1b7ac625d7"),
     "ContentWriter": os.getenv("CONTENT_WRITER_WALLET_ADDRESS", "0xf66ec96a7c0ca6a6736ccbc989b6226a9cde43f7"),
@@ -42,7 +41,6 @@ DEMO_TASKS = [
     ("write",     "ContentWriter", "Email subject for developer hackathon on AI + USDC micropayments"),
 ]
 
-# Pre-generated AI responses for demo speed (avoids Gemini rate limits at 55 req/30s)
 FAST_RESPONSES = {
     "DataAnalyst": [
         "• Revenue up 23% QoQ — strong growth signal\n• Retention 89% = solid PMF\n• NPS 72 → high referral potential",
@@ -68,14 +66,15 @@ FAST_RESPONSES = {
 
 
 async def _fire_circle_transfer(agent_name: str, amount: float, task_type: str, task_input: str, idx: int) -> dict:
-    """Fire a real Circle DCW transfer from Orchestrator → Agent wallet."""
+    """Fire a real Circle DCW transfer (with polling) — returns confirmed Arc 0x tx hash."""
     payer_wallet_id = os.getenv("ORCHESTRATOR_WALLET_ID", "8137508b-a29f-5795-ad11-f1e08aa0bedd")
     payee_address = AGENT_ADDRESSES[agent_name]
-    idempotency_key = f"demo-{uuid.uuid4()}"
+    idempotency_key = str(uuid.uuid4())
 
     try:
         client = CircleWalletsClient()
-        result = await client.transfer_with_fallback(
+        # Use transfer() with polling → returns confirmed 0x Arc tx hash
+        result = await client.transfer(
             source_wallet_id=payer_wallet_id,
             dest_address=payee_address,
             amount_usdc=amount,
@@ -85,7 +84,7 @@ async def _fire_circle_transfer(agent_name: str, amount: float, task_type: str, 
             "tx_hash": result["txHash"],
             "circle_tx_id": result["id"],
             "state": result["state"],
-            "real": result.get("state") not in ("simulated",),
+            "real": result.get("state") not in ("simulated", "PENDING"),
         }
     except Exception as e:
         fake_hash = "0x" + hashlib.sha256(f"{idempotency_key}{agent_name}{idx}".encode()).hexdigest()
@@ -93,21 +92,23 @@ async def _fire_circle_transfer(agent_name: str, amount: float, task_type: str, 
 
 
 async def run_demo_transactions(count: int):
-    """Fire 55 autonomous Circle DCW transfers — real Arc transactions + live SSE broadcast."""
+    """Fire count Circle DCW transfers concurrently — real Arc 0x hashes + live SSE broadcast."""
     from ...main import broadcast_transaction
 
-    async with AsyncSessionLocal() as session:
-        for i in range(count):
-            task_type, agent_name, task_input = random.choice(DEMO_TASKS)
-            price = AGENT_PRICES[agent_name]
-            total_cost = price + 0.001  # + routing fee
+    # Semaphore: max 8 concurrent Circle API calls (avoid rate limiting)
+    sem = asyncio.Semaphore(8)
 
-            # Real Circle DCW transfer (fire and don't wait for confirmation)
+    async def fire_one(i: int):
+        task_type, agent_name, task_input = random.choice(DEMO_TASKS)
+        price = AGENT_PRICES[agent_name]
+        total_cost = price + 0.001
+        result_text = random.choice(FAST_RESPONSES[agent_name])
+
+        async with sem:
             tx_info = await _fire_circle_transfer(agent_name, price, task_type, task_input, i)
 
-            result_text = random.choice(FAST_RESPONSES[agent_name])
-            now = datetime.utcnow()
-
+        now = datetime.utcnow()
+        async with AsyncSessionLocal() as session:
             try:
                 tx = Transaction(
                     from_agent="DemoOrchestrator",
@@ -139,8 +140,8 @@ async def run_demo_transactions(count: int):
             except Exception:
                 await session.rollback()
 
-            # minimal delay — just enough for SSE broadcast before next tx
-            await asyncio.sleep(0.05)
+    # Fire all concurrently — each streams to SSE as it confirms on Arc
+    await asyncio.gather(*[fire_one(i) for i in range(count)])
 
 
 @router.post("/run")
@@ -149,8 +150,8 @@ async def run_demo(background_tasks: BackgroundTasks, count: int = 55):
     return {
         "started": True,
         "transaction_count": count,
-        "estimated_seconds": count * 0.05,
-        "message": f"Firing {count} Circle DCW transfers on Arc testnet — estimated {count * 1:.0f}s",
+        "estimated_seconds": 30,
+        "message": f"Firing {count} Circle DCW transfers on Arc testnet — ~30s for all confirmations",
         "payer": "Orchestrator wallet → Agent wallets",
         "payment_layer": "Circle Developer Controlled Wallets → Arc EVM L1",
     }

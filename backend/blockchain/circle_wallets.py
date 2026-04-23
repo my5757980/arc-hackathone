@@ -78,15 +78,16 @@ class CircleWalletsClient:
                     "tokenId": os.getenv("ARC_USDC_TOKEN_ID", ""),
                     "amounts": [f"{amount_usdc:.6f}"],
                     "destinationAddress": dest_address,
-                    "fee": {"type": "level", "config": {"feeLevel": "MEDIUM"}},
+                    "gasLimit": "100000",
+                    "priorityFee": "1",
+                    "maxFee": "25",
                 },
             )
             if not resp.is_success:
                 raise ValueError(
                     f"Circle DCW transfer failed: {resp.status_code} — {resp.text[:300]}"
                 )
-            tx_data = resp.json()["data"]["transaction"]
-            tx_id = tx_data["id"]
+            tx_id = resp.json()["data"]["id"]
 
         # Poll up to 20s for onchain confirmation + real tx hash
         tx_hash = await self._poll_tx_hash(tx_id, max_wait=20)
@@ -151,15 +152,16 @@ class CircleWalletsClient:
                     "tokenId": os.getenv("ARC_USDC_TOKEN_ID", ""),
                     "amounts": [f"{amount_usdc:.6f}"],
                     "destinationAddress": dest_address,
-                    "fee": {"type": "level", "config": {"feeLevel": "MEDIUM"}},
+                    "gasLimit": "100000",
+                    "priorityFee": "1",
+                    "maxFee": "25",
                 },
             )
             if not resp.is_success:
                 raise ValueError(
                     f"Circle DCW transfer failed: {resp.status_code} — {resp.text[:200]}"
                 )
-            tx_data = resp.json()["data"]["transaction"]
-            tx_id = tx_data["id"]
+            tx_id = resp.json()["data"]["id"]
             # Return Circle transaction ID immediately — tx hash resolves onchain later
             return {
                 "id": tx_id,
