@@ -1,7 +1,7 @@
 """Transaction history endpoints."""
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, delete
 from ...db.database import get_db
 from ...db.models import Transaction
 from ...blockchain.nanopayments import NanopaymentsClient
@@ -31,6 +31,14 @@ async def get_transactions(limit: int = 100, db: AsyncSession = Depends(get_db))
         ],
         "total": len(txns),
     }
+
+
+@router.delete("/clear")
+async def clear_transactions(db: AsyncSession = Depends(get_db)):
+    """Delete all transactions — fresh start for demo."""
+    await db.execute(delete(Transaction))
+    await db.commit()
+    return {"cleared": True, "message": "All transactions deleted"}
 
 
 @router.get("/margin-analysis")

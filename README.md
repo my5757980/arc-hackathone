@@ -1,120 +1,165 @@
 # AgentFlow — Autonomous AI Agent Economy on Arc
 
-**Hackathon:** Agentic Economy on Arc | April 20-26, 2026
+**Hackathon:** Agentic Economy on Arc | April 20–26, 2026
 **Track:** Agent-to-Agent Payment Loop
 **Prize Pool:** $15,000+
+**Team:** Muhammad Yaseen
 
-> Sub-cent USDC micropayments between AI agents via Circle Nanopayments on Arc EVM L1.
-> The first agent marketplace where machines pay each other in real-time, per-task, without gas overhead.
+> The first autonomous AI agent marketplace where machines pay each other in real-time, per-task, using Circle Nanopayments on Arc EVM L1 — without gas overhead eroding margin.
 
 ---
 
 ## What It Does
 
-AgentFlow is an autonomous AI agent marketplace:
+AgentFlow is an autonomous AI agent economy:
 
-- **4 Specialized Agents**: DataAnalyst, ContentWriter, CodeReviewer, Translator
-- **Real-time USDC payments**: Each agent task triggers a Circle Nanopayment on Arc
-- **Sub-cent pricing**: $0.002–$0.008 USDC per task (impossible on gas-based chains)
-- **Live dashboard**: Real-time feed of all agent-to-agent transactions
-- **Demo mode**: 55 autonomous transactions in 30 seconds
+- **4 Specialized AI Agents** powered by Gemini 2.5 Flash: DataAnalyst, ContentWriter, CodeReviewer, Translator
+- **Real-time USDC micropayments** via Circle Developer Controlled Wallets on Arc EVM L1
+- **Sub-cent pricing**: $0.002–$0.008 USDC per task (economically impossible on gas-based chains)
+- **Orchestrator** routes tasks + collects $0.001 USDC routing fee per request
+- **Live dashboard** with SSE real-time transaction feed
+- **Demo mode**: 55 autonomous Circle DCW transfers in ~30 seconds
 
 ---
 
-## Economic Proof (Required by Hackathon)
+## Economic Proof (Hackathon Required)
 
-| Metric              | Gas-Based (ETH)    | Arc Nanopayments   |
-|---------------------|--------------------|--------------------|
-| Cost per transaction | ~$1.00            | ~$0.000001         |
-| Revenue per task     | $0.003 USDC       | $0.003 USDC        |
-| Net profit (1000 tx) | **-$997 LOSS**    | **+$2.999 PROFIT** |
-| Economically viable? | NO                | YES                |
+| Metric | Gas-Based (ETH) | Arc Nanopayments |
+|---|---|---|
+| Cost per transaction | ~$1.00 | ~$0.000001 |
+| Revenue per task | $0.003 USDC | $0.003 USDC |
+| Net on 1000 txns | **-$997 LOSS** | **+$2.999 PROFIT** |
+| Economically viable? | **NO** | **YES** |
 
-**Conclusion:** Arc Nanopayments reduce transaction overhead by 99.9999%, making sub-cent AI agent commerce viable for the first time.
+**Conclusion:** Arc Nanopayments reduce overhead by 99.9999% — enabling sub-cent AI agent commerce that is impossible on any gas-based chain.
+
+**API:** `GET /api/transactions/margin-analysis` returns full per-agent economic breakdown.
 
 ---
 
 ## Tech Stack
 
-| Component     | Technology                              |
-|---------------|-----------------------------------------|
-| Blockchain    | Arc EVM L1 (Circle)                     |
-| Stablecoin    | USDC                                    |
-| Payments      | Circle Nanopayments API                 |
-| Wallets       | Circle Programmable Wallets             |
-| Protocol      | x402 HTTP Payment Standard             |
-| AI            | Gemini Flash (gemini-2.5-flash)               |
-| Backend       | Python 3.11 + FastAPI + uv              |
-| Frontend      | Next.js 15 + Tailwind CSS               |
-| Database      | Neon PostgreSQL (serverless)            |
-| Deploy        | Railway (backend) + Vercel (frontend)   |
-
----
-
-## Setup
-
-### 1. Prerequisites
-- Python 3.11+, Node.js 20+, uv
-- Circle Developer Account (free)
-- Gemini API key (free tier)
-- Neon PostgreSQL (free tier)
-
-### 2. Clone & Configure
-```bash
-git clone https://github.com/yourusername/agentflow
-cd agentflow
-cp .env.example .env
-# Fill in your Circle API key, Gemini API key, Neon DB URL
-```
-
-### 3. Run with Docker
-```bash
-docker compose up
-```
-
-### 4. Run Manually
-```bash
-# Backend
-cd backend
-uv sync
-uv run uvicorn backend.main:app --reload --port 8000
-
-# Frontend (new terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-### 5. Run Demo (55 Transactions)
-```bash
-python3 demo_runner.py
-```
-Or click **"Run Demo"** button in the dashboard at http://localhost:3000
-
----
-
-## API Endpoints
-
-| Method | Endpoint              | Description                      |
-|--------|-----------------------|----------------------------------|
-| POST   | /api/tasks            | Execute agent task + pay         |
-| GET    | /api/transactions     | Transaction history              |
-| GET    | /api/wallets          | Agent wallet balances            |
-| POST   | /api/demo/run         | Trigger 55 auto-transactions     |
-| GET    | /api/events           | SSE real-time transaction stream |
-| GET    | /api/transactions/margin-analysis | Economic proof data |
+| Layer | Technology |
+|---|---|
+| Blockchain | Arc EVM L1 (Circle) — ARC-TESTNET, Chain ID 60000 |
+| Stablecoin | USDC (native gas token on Arc) |
+| Payments | Circle Nanopayments API + Circle Dev Controlled Wallets |
+| Wallets | 5 Circle Developer Controlled Wallets (funded 20 USDC each) |
+| Protocol | x402 HTTP Payment Standard |
+| AI | Gemini 2.5 Flash Preview (`gemini-2.5-flash-preview-04-17`) |
+| Backend | Python 3.11 + FastAPI + uv |
+| Frontend | Next.js 15 + Tailwind CSS (dark neon UI) |
+| Database | Neon PostgreSQL (serverless) |
+| Deploy | Railway (backend) + Vercel (frontend) |
 
 ---
 
 ## Agent Pricing
 
-| Agent         | Task                  | Price (USDC) |
-|---------------|-----------------------|--------------|
-| DataAnalyst   | Data analysis         | $0.003       |
-| ContentWriter | Content generation    | $0.005       |
-| CodeReviewer  | Code review           | $0.008       |
-| Translator    | Text translation      | $0.002       |
-| Orchestrator  | Routing fee           | $0.001       |
+| Agent | Task | Price (USDC) |
+|---|---|---|
+| DataAnalyst | Data analysis + insights | $0.003 |
+| ContentWriter | Content generation | $0.005 |
+| CodeReviewer | Code review + security | $0.008 |
+| Translator | Text translation | $0.002 |
+| Orchestrator | Routing fee | $0.001 |
+
+---
+
+## Setup & Run
+
+### Prerequisites
+- Python 3.11+, Node.js 20+, uv
+- Circle Developer Account (credentials in `.env`)
+- Gemini API key
+
+### Quick Start (Docker)
+```bash
+git clone <repo-url>
+cd agentflow
+cp .env.example .env  # fill in keys
+docker compose up
+# Browser: http://localhost:3000
+```
+
+### Manual Start
+```bash
+# Terminal 1 — Backend (MUST run from project root, NOT from backend/)
+uv --directory backend sync
+backend/.venv/Scripts/python.exe -m uvicorn backend.main:app --reload --port 8000
+# On Linux/Mac: backend/.venv/bin/python -m uvicorn backend.main:app --reload --port 8000
+
+# Terminal 2 — Frontend
+cd frontend
+npm install
+npm run dev
+
+# Browser: http://localhost:3000
+# Click "🗑 Clear All Data" first → then "▶ Run Demo (55 txns)" → watch live transactions
+```
+
+### Run Demo from CLI
+```bash
+python3 demo_runner.py
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /api/tasks | Execute agent task + pay USDC |
+| GET | /api/transactions | Full transaction history |
+| GET | /api/transactions/margin-analysis | Economic proof (gas vs Arc) |
+| GET | /api/wallets | Live agent wallet balances |
+| POST | /api/demo/run | Trigger 55 Circle DCW transfers |
+| GET | /api/events | SSE real-time transaction stream |
+| GET | /health | Health check |
+
+---
+
+## Project Structure
+
+```
+agentflow/
+├── backend/
+│   ├── main.py                    — FastAPI app + SSE broadcast
+│   ├── agents/
+│   │   ├── base_agent.py          — Gemini 2.5 Flash base class
+│   │   ├── orchestrator.py        — Task routing + payment flow
+│   │   ├── data_analyst.py        — $0.003/task
+│   │   ├── content_writer.py      — $0.005/task
+│   │   ├── code_reviewer.py       — $0.008/task
+│   │   └── translator.py          — $0.002/task
+│   ├── blockchain/
+│   │   ├── nanopayments.py        — Circle Nanopayments client
+│   │   ├── circle_wallets.py      — DCW + entity secret RSA signing
+│   │   └── x402.py                — x402 HTTP payment protocol
+│   ├── api/routes/
+│   │   ├── tasks.py               — POST /api/tasks
+│   │   ├── transactions.py        — GET /api/transactions
+│   │   ├── wallets.py             — GET /api/wallets (live Circle balance)
+│   │   └── demo.py                — POST /api/demo/run
+│   └── db/
+│       ├── models.py              — Transaction + AgentWallet models
+│       └── database.py            — Neon PostgreSQL async
+├── frontend/
+│   └── app/page.tsx               — Next.js 15 dark neon dashboard
+├── demo_runner.py                 — CLI demo (55 transactions)
+├── docker-compose.yml
+└── Procfile                       — Railway deploy
+```
+
+---
+
+## Circle Integration Notes
+
+- **Circle API Key:** `TEST_API_KEY:...` (developer account)
+- **Entity Secret:** Used for RSA-OAEP signing of Developer Controlled Wallet transactions
+- **Wallet Set:** 5 wallets on ARC-TESTNET, each funded with 20 USDC via testnet faucet
+- **Nanopayments:** Code correctly calls `/v1/nanopayments/payments`. Arc testnet endpoint returns 404 (infrastructure not yet stable). Falls back to Circle DCW transfer automatically — real Arc onchain transactions still generated.
+- **x402 Protocol:** Fully implemented for agent-to-agent HTTP payment negotiation
 
 ---
 
@@ -122,20 +167,16 @@ Or click **"Run Demo"** button in the dashboard at http://localhost:3000
 
 **Backend (Railway):**
 ```bash
-railway login
-railway init
-railway up
+railway login && railway init && railway up
 ```
 
 **Frontend (Vercel):**
 ```bash
 vercel --cwd frontend
+# Set NEXT_PUBLIC_API_URL to Railway backend URL in Vercel dashboard
 ```
-
-Set `NEXT_PUBLIC_API_URL` to your Railway backend URL in Vercel env vars.
 
 ---
 
-Built with Circle Nanopayments + Arc EVM L1 + Gemini Flash
-Agentic Economy on Arc Hackathon 2026
-"# arc-hackathone" 
+Built for **Agentic Economy on Arc** Hackathon 2026
+Circle Nanopayments + Arc EVM L1 + Gemini 2.5 Flash + Circle Developer Controlled Wallets

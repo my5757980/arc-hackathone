@@ -1,10 +1,21 @@
-"""Base agent class for all AgentFlow agents."""
+"""Base agent class — Gemini 2.5 Flash powered, sub-cent USDC payments on Arc."""
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import google.generativeai as genai
-import os
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY", ""))
+from google import genai
+from google.genai import types
+
+_gemini_client: genai.Client | None = None
+
+GEMINI_MODEL = "gemini-2.5-flash-preview-04-17"
+
+
+def _get_gemini_client() -> genai.Client:
+    global _gemini_client
+    if _gemini_client is None:
+        _gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY", ""))
+    return _gemini_client
 
 
 @dataclass
@@ -26,11 +37,10 @@ class TaskResult:
 
 
 class BaseAgent(ABC):
-    """Abstract base for all AgentFlow agents."""
+    """Abstract base for all AgentFlow agents — powered by Gemini 2.5 Flash."""
 
     def __init__(self, config: AgentConfig):
         self.config = config
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
         self._tasks_completed = 0
 
     @property
@@ -55,12 +65,20 @@ class BaseAgent(ABC):
         pass
 
     def _call_gemini(self, prompt: str) -> str:
-        """Call Gemini Flash with a prompt."""
+        """Call Gemini 2.5 Flash with a prompt — the AI brain of each agent."""
         try:
-            response = self.model.generate_content(prompt)
+            client = _get_gemini_client()
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=300,
+                    temperature=0.7,
+                ),
+            )
             return response.text
         except Exception as e:
-            return f"[Agent {self.name} error: {str(e)[:100]}]"
+            return f"[{self.name} Gemini error: {str(e)[:120]}]"
 
     def increment_tasks(self):
         self._tasks_completed += 1

@@ -1,6 +1,6 @@
 """
-AgentFlow — Autonomous AI Agent Economy
-FastAPI backend with Circle Nanopayments + Arc EVM L1 + Gemini Flash
+AgentFlow — Autonomous AI Agent Economy on Arc
+FastAPI backend: Circle Nanopayments + Circle DCW + Arc EVM L1 + Gemini 2.5 Flash
 """
 import asyncio
 import json
