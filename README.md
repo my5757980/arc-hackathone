@@ -190,3 +190,4 @@ vercel --cwd frontend
 
 Built for **Agentic Economy on Arc** Hackathon 2026
 Circle Nanopayments + Arc EVM L1 + Gemini 2.5 Flash + Circle Developer Controlled Wallets
+"# arc-hackathone" 
