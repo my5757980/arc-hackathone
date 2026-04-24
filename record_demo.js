@@ -13,7 +13,7 @@ const path = require('path');
 const fs = require('fs');
 
 const VIDEO_DIR = path.join(__dirname, 'demo-video');
-const DASHBOARD_URL = 'http://localhost:3003';
+const DASHBOARD_URL = 'http://localhost:3000';
 const BACKEND_URL = 'http://localhost:8000';
 
 async function sleep(ms) {
@@ -121,61 +121,60 @@ async function sleep(ms) {
   await page.evaluate(() => window.scrollTo({ top: 800, behavior: 'smooth' }));
   await sleep(5000);
 
-  // ─── SCENE 9: Click a Tx Hash → Arc Explorer ───────────────────────
-  console.log('Scene 9: Arc Explorer (testnet.arcscan.app)...');
-  // Get first tx hash link
+  // ─── SCENE 9: Arc Explorer — MAIN PAGE navigate (same tab = recorded) ─
+  console.log('Scene 9: Arc Explorer on MAIN PAGE...');
+
+  // Get first real tx hash link from the dashboard
   const txLink = page.locator('a[href*="testnet.arcscan.app"]').first();
   const linkCount = await txLink.count();
+  let explorerUrl = 'https://testnet.arcscan.app/tx/0x4079460fb8c9fe20c015a07d5b101700e47cb5e0918844c61fa9f4739259903b';
 
   if (linkCount > 0) {
-    const href = await txLink.getAttribute('href');
-    console.log(`Opening tx: ${href}`);
-    const explorerPage = await context.newPage();
-    await explorerPage.goto(href, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
-    await sleep(8000); // wait for Blockscout to render tx details (Success, block, timestamp)
-    await explorerPage.close();
+    explorerUrl = await txLink.getAttribute('href');
+    console.log(`Using live tx hash: ${explorerUrl}`);
   } else {
-    // Directly navigate to known real tx
-    console.log('No live tx link, showing known real tx...');
-    const explorerPage = await context.newPage();
-    await explorerPage.goto(
-      'https://testnet.arcscan.app/tx/0x4079460fb8c9fe20c015a07d5b101700e47cb5e0918844c61fa9f4739259903b',
-      { waitUntil: 'domcontentloaded', timeout: 30000 }
-    ).catch(() => {});
-    await sleep(5000);
-    await explorerPage.close();
+    console.log('Using known real tx hash...');
   }
 
-  // ─── SCENE 10: Circle Console ──────────────────────────────────────
-  console.log('Scene 10: Circle console.circle.com...');
-  const consolePage = await context.newPage();
-  await consolePage.goto('https://console.circle.com', {
+  // Navigate MAIN PAGE to Arc Explorer (stays in same recording)
+  await page.goto(explorerUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+  await sleep(8000); // Hold on Arc Explorer — show Success, block, confirmations
+
+  // ─── SCENE 10: Circle Console — MAIN PAGE navigate ─────────────────
+  console.log('Scene 10: Circle Developer Console on MAIN PAGE...');
+  await page.goto('https://console.circle.com', {
     waitUntil: 'domcontentloaded',
     timeout: 20000,
   }).catch(() => {});
-  await sleep(4000);
-  await consolePage.close();
+  await sleep(5000); // Hold on Circle Console — show Circle branding + dashboard
 
-  // ─── SCENE 11: Outro ────────────────────────────────────────────────
-  console.log('Scene 11: Back to dashboard outro...');
-  await page.bringToFront();
+  // ─── SCENE 11: Back to AgentFlow Dashboard — Outro ──────────────────
+  console.log('Scene 11: Back to AgentFlow dashboard outro...');
+  await page.goto(DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 20000 }).catch(() => {});
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-  await sleep(5000); // Final hold on dashboard
+  await sleep(3000);
+  // Scroll to show final stats
+  await page.evaluate(() => window.scrollTo({ top: 200, behavior: 'smooth' }));
+  await sleep(3000); // Final hold — 55 txns, $0.3110 USDC, all CONFIRMED
 
-  // ─── Finalize ───────────────────────────────────────────────────────
+  // ─── Finalize ────────────────────────────────────────────────────────
   console.log('Closing context to finalize video...');
   await context.close();
   await browser.close();
 
-  // Find the recorded video file
-  const files = fs.readdirSync(VIDEO_DIR).filter(f => f.endsWith('.webm'));
+  // Find the recorded video — main page file (largest file = main page recording)
+  const files = fs.readdirSync(VIDEO_DIR).filter(f => f.endsWith('.webm') && !f.includes('agentflow-demo'));
   if (files.length > 0) {
-    const latest = files.sort().at(-1);
+    // Pick the LARGEST file — that's the main page (longest recording)
+    const withSize = files.map(f => ({ f, size: fs.statSync(path.join(VIDEO_DIR, f)).size }));
+    withSize.sort((a, b) => b.size - a.size);
+    const best = withSize[0].f;
     const finalPath = path.join(VIDEO_DIR, 'agentflow-demo.webm');
-    fs.renameSync(path.join(VIDEO_DIR, latest), finalPath);
+    if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
+    fs.renameSync(path.join(VIDEO_DIR, best), finalPath);
     console.log(`\n✅ Video saved: ${finalPath}`);
     console.log(`   Size: ${(fs.statSync(finalPath).size / 1024 / 1024).toFixed(1)} MB`);
   } else {
-    console.log('No .webm file found in output directory');
+    console.log('No new .webm file found — check demo-video/ folder');
   }
 })();

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    background: #030712;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* Grid background */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Glow orbs */
+  .orb1 {
+    position: absolute; width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,255,136,0.12) 0%, transparent 70%);
+    top: -100px; left: -100px;
+  }
+  .orb2 {
+    position: absolute; width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+    bottom: -80px; right: 100px;
+  }
+  .orb3 {
+    position: absolute; width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,200,255,0.1) 0%, transparent 70%);
+    top: 100px; right: -50px;
+  }
+
+  /* Main content */
+  .content {
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column;
+    justify-content: center; height: 100%;
+    padding: 60px 80px;
+  }
+
+  /* Top badge */
+  .badge-row {
+    display: flex; gap: 12px; margin-bottom: 32px;
+  }
+  .badge {
+    padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-green {
+    background: rgba(0,255,136,0.12);
+    border: 1px solid rgba(0,255,136,0.3);
+    color: #00ff88;
+  }
+  .badge-blue {
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.3);
+    color: #818cf8;
+  }
+  .badge-cyan {
+    background: rgba(0,200,255,0.12);
+    border: 1px solid rgba(0,200,255,0.3);
+    color: #00c8ff;
+  }
+
+  /* Title */
+  .title {
+    font-size: 72px; font-weight: 800; line-height: 1.05;
+    color: #ffffff; margin-bottom: 8px;
+  }
+  .title span {
+    background: linear-gradient(135deg, #00ff88 0%, #00c8ff 50%, #818cf8 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    font-size: 22px; color: #94a3b8; margin-bottom: 48px; font-weight: 400;
+  }
+
+  /* Stats row */
+  .stats {
+    display: flex; gap: 0;
+  }
+  .stat {
+    padding: 20px 40px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.03);
+  }
+  .stat:first-child { border-radius: 12px 0 0 12px; }
+  .stat:last-child { border-radius: 0 12px 12px 0; }
+  .stat-val {
+    font-size: 32px; font-weight: 700; color: #00ff88;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-val.purple { color: #818cf8; }
+  .stat-val.cyan { color: #00c8ff; }
+  .stat-val.yellow { color: #fbbf24; }
+  .stat-label {
+    font-size: 12px; color: #64748b; text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 4px;
+  }
+
+  /* Right side — agent cards */
+  .right {
+    position: absolute; right: 80px; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 10;
+  }
+  .agent-card {
+    width: 220px; padding: 12px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .agent-name { font-size: 13px; color: #cbd5e1; font-weight: 500; }
+  .agent-price { font-size: 13px; color: #00ff88; font-weight: 700; }
+
+  /* Bottom bar */
+  .bottom {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 14px 80px;
+    background: rgba(0,255,136,0.05);
+    border-top: 1px solid rgba(0,255,136,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 10;
+  }
+  .bottom-left { font-size: 13px; color: #475569; }
+  .bottom-right { font-size: 13px; color: #475569; }
+  .bottom-right span { color: #00ff88; font-weight: 600; }
+
+  /* Powered by row */
+  .powered {
+    display: flex; gap: 20px; align-items: center; margin-top: 28px;
+  }
+  .powered-label { font-size: 12px; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
+  .pill {
+    padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+  <div class="orb3"></div>
+
+  <div class="content">
+    <div class="badge-row">
+      <div class="badge badge-green">Arc EVM L1</div>
+      <div class="badge badge-blue">Circle Wallets</div>
+      <div class="badge badge-cyan">USDC Nanopayments</div>
+    </div>
+
+    <div class="title">Agent<span>Flow</span></div>
+    <div class="subtitle">Autonomous AI Agent Economy on Arc</div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-val">55</div>
+        <div class="stat-label">Onchain Txns</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val purple">$0.003</div>
+        <div class="stat-label">Min Price</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val cyan">~$0</div>
+        <div class="stat-label">Gas Cost</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val yellow">4</div>
+        <div class="stat-label">AI Agents</div>
+      </div>
+    </div>
+
+    <div class="powered">
+      <span class="powered-label">Powered by</span>
+      <span class="pill">Gemini 2.5 Flash</span>
+      <span class="pill">FastAPI + Next.js 15</span>
+      <span class="pill">Circle DCW</span>
+      <span class="pill">x402 Protocol</span>
+    </div>
+  </div>
+
+  <!-- Right agent cards -->
+  <div class="right">
+    <div style="font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Agent Marketplace</div>
+    <div class="agent-card">
+      <span class="agent-name">🔍 DataAnalyst</span>
+      <span class="agent-price">$0.003</span>
+    </div>
+    <div class="agent-card">
+      <span class="agent-name">✍️ ContentWriter</span>
+      <span class="agent-price">$0.005</span>
+    </div>
+    <div class="agent-card">
+      <span class="agent-name">🔎 CodeReviewer</span>
+      <span class="agent-price">$0.008</span>
+    </div>
+    <div class="agent-card">
+      <span class="agent-name">🌐 Translator</span>
+      <span class="agent-price">$0.002</span>
+    </div>
+    <div class="agent-card" style="border-color:rgba(0,255,136,0.2);background:rgba(0,255,136,0.04);">
+      <span class="agent-name" style="color:#00ff88;">⚡ Orchestrator</span>
+      <span class="agent-price">$0.001</span>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <span class="bottom-left">lablab.ai Hackathon — Agent-to-Agent Payment Loop Track</span>
+    <span class="bottom-right">Machine-to-Machine Commerce — <span>Zero Gas Fees</span></span>
+  </div>
+</body>
+</html>
