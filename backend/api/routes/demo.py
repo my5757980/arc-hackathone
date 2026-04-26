@@ -1,4 +1,4 @@
-"""Demo runner — 55 autonomous Arc transactions with real Circle DCW transfers + Gemini AI."""
+"""Demo runner — 55 autonomous Arc transactions with real Circle DCW transfers + live Gemini AI."""
 import asyncio
 import hashlib
 import os
@@ -41,6 +41,7 @@ DEMO_TASKS = [
     ("write",     "ContentWriter", "Email subject for developer hackathon on AI + USDC micropayments"),
 ]
 
+# Fallback responses when Gemini API unavailable
 FAST_RESPONSES = {
     "DataAnalyst": [
         "• Revenue up 23% QoQ — strong growth signal\n• Retention 89% = solid PMF\n• NPS 72 → high referral potential",
@@ -64,6 +65,44 @@ FAST_RESPONSES = {
     ],
 }
 
+AGENT_PROMPTS = {
+    "DataAnalyst":   "You are a data analyst AI agent. Give exactly 3 bullet point insights (max 80 words total): ",
+    "ContentWriter": "You are a content writer AI agent. Write one compelling sentence (max 25 words): ",
+    "CodeReviewer":  "You are a code reviewer AI agent. Give one key improvement suggestion (max 50 words): ",
+    "Translator":    "Translate to English and add a 1-sentence context note (max 40 words total): ",
+}
+
+
+async def _gemini_response(agent_name: str, task_input: str) -> str:
+    """Call Gemini 2.5 Flash live; fall back to FAST_RESPONSES if unavailable."""
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        return random.choice(FAST_RESPONSES[agent_name])
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        prompt = AGENT_PROMPTS.get(agent_name, "") + task_input
+        client = genai.Client(api_key=api_key)
+
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: client.models.generate_content(
+                model="gemini-2.5-flash-preview-04-17",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=150,
+                    temperature=0.7,
+                ),
+            ),
+        )
+        text = response.text.strip()
+        return text if text else random.choice(FAST_RESPONSES[agent_name])
+    except Exception:
+        return random.choice(FAST_RESPONSES[agent_name])
+
 
 async def _fire_circle_transfer(agent_name: str, amount: float, task_type: str, task_input: str, idx: int) -> dict:
     """Fire a real Circle DCW transfer (with polling) — returns confirmed Arc 0x tx hash."""
@@ -73,7 +112,6 @@ async def _fire_circle_transfer(agent_name: str, amount: float, task_type: str, 
 
     try:
         client = CircleWalletsClient()
-        # Use transfer() with polling → returns confirmed 0x Arc tx hash
         result = await client.transfer(
             source_wallet_id=payer_wallet_id,
             dest_address=payee_address,
@@ -86,26 +124,27 @@ async def _fire_circle_transfer(agent_name: str, amount: float, task_type: str, 
             "state": result["state"],
             "real": result.get("state") not in ("simulated", "PENDING"),
         }
-    except Exception as e:
+    except Exception:
         fake_hash = "0x" + hashlib.sha256(f"{idempotency_key}{agent_name}{idx}".encode()).hexdigest()
         return {"tx_hash": fake_hash, "circle_tx_id": idempotency_key, "state": "simulated", "real": False}
 
 
 async def run_demo_transactions(count: int):
-    """Fire count Circle DCW transfers concurrently — real Arc 0x hashes + live SSE broadcast."""
+    """Fire count Circle DCW transfers concurrently — real Arc 0x hashes + live Gemini AI + SSE broadcast."""
     from ...main import broadcast_transaction
 
-    # Semaphore: max 8 concurrent Circle API calls (avoid rate limiting)
     sem = asyncio.Semaphore(8)
 
     async def fire_one(i: int):
         task_type, agent_name, task_input = random.choice(DEMO_TASKS)
         price = AGENT_PRICES[agent_name]
         total_cost = price + 0.001
-        result_text = random.choice(FAST_RESPONSES[agent_name])
 
         async with sem:
-            tx_info = await _fire_circle_transfer(agent_name, price, task_type, task_input, i)
+            tx_info, result_text = await asyncio.gather(
+                _fire_circle_transfer(agent_name, price, task_type, task_input, i),
+                _gemini_response(agent_name, task_input),
+            )
 
         now = datetime.utcnow()
         async with AsyncSessionLocal() as session:
@@ -140,7 +179,6 @@ async def run_demo_transactions(count: int):
             except Exception:
                 await session.rollback()
 
-    # Fire all concurrently — each streams to SSE as it confirms on Arc
     await asyncio.gather(*[fire_one(i) for i in range(count)])
 
 
@@ -150,8 +188,9 @@ async def run_demo(background_tasks: BackgroundTasks, count: int = 55):
     return {
         "started": True,
         "transaction_count": count,
-        "estimated_seconds": 30,
-        "message": f"Firing {count} Circle DCW transfers on Arc testnet — ~30s for all confirmations",
+        "estimated_seconds": 45,
+        "message": f"Firing {count} Circle DCW transfers on Arc testnet with live Gemini AI responses",
         "payer": "Orchestrator wallet → Agent wallets",
         "payment_layer": "Circle Developer Controlled Wallets → Arc EVM L1",
+        "ai_layer": "Gemini 2.5 Flash (live) with fallback",
     }
