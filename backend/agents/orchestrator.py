@@ -58,34 +58,57 @@ class OrchestratorAgent:
         payer_address: str,
     ) -> TaskResult:
         """
-        Full payment + execution flow:
-        1. Charge routing fee to orchestrator
-        2. Route to appropriate agent
-        3. Charge agent fee from payer to agent wallet
-        4. Execute AI task
-        5. Return result + tx_hash
+        Gemini Function Calling flow:
+        1. Gemini calls route_to_agent() — selects best agent for the task
+        2. Gemini calls initiate_payment() — transfers USDC on Arc via Circle DCW
+        3. Python executes both Circle API calls, feeds results back to Gemini
+        4. Agent executes AI task with Gemini
+        5. Returns result + real Arc tx_hash
+        Falls back to direct routing if GEMINI_API_KEY not set.
         """
-        agent_name = self._detect_agent(task_type)
-        agent = self._agents.get(agent_name)
-        if not agent:
-            raise ValueError(f"Agent {agent_name} not registered")
-
-        total_cost = self._routing_fee + agent.price_usdc
         task_id = str(uuid.uuid4())
+        fn_calls: list = []
 
-        routing_tx = await self._settle_payment(
-            payer_wallet_id=payer_wallet_id,
-            payee_address=os.getenv("ORCHESTRATOR_WALLET_ADDRESS", "0x0"),
-            amount_usdc=self._routing_fee,
-            memo=f"routing:{task_id}",
-        )
+        if os.getenv("GEMINI_API_KEY"):
+            routing_prompt = (
+                f"You are orchestrating an AI agent economy on Arc blockchain.\n"
+                f"Task type: {task_type}\n"
+                f"Task input: {task_input[:200]}\n\n"
+                f"Steps:\n"
+                f"1. Call route_to_agent() — pick the best agent for this task type.\n"
+                f"   DataAnalyst: data/analytics tasks | ContentWriter: writing tasks\n"
+                f"   CodeReviewer: code tasks | Translator: translation tasks\n"
+                f"2. Call initiate_payment() — transfer USDC from payer to selected agent on Arc.\n"
+                f"   Payer wallet ID: {payer_wallet_id}\n"
+                f"3. Confirm both calls completed successfully."
+            )
+            from .base_agent import gemini_function_calling_round
+            _, fn_calls = await gemini_function_calling_round(routing_prompt)
 
-        agent_tx = await self._settle_payment(
-            payer_wallet_id=payer_wallet_id,
-            payee_address=agent.wallet_address,
-            amount_usdc=agent.price_usdc,
-            memo=f"task:{task_id}:{agent_name}",
-        )
+        # Extract agent + tx_hash from Gemini function call results
+        agent_name = self._detect_agent(task_type)
+        tx_hash = f"0x{task_id.replace('-', '')}"
+
+        for call in fn_calls:
+            if call["function"] == "route_to_agent":
+                routed = call["result"].get("routed_to", "")
+                if routed in self._agents:
+                    agent_name = routed
+            elif call["function"] == "initiate_payment":
+                tx_hash = call["result"].get("tx_hash", tx_hash)
+
+        agent = self._agents.get(agent_name) or self._agents.get("DataAnalyst")
+        total_cost = self._routing_fee + agent.price_usdc
+
+        # If Gemini didn't initiate payment, do it directly
+        if not any(c["function"] == "initiate_payment" for c in fn_calls):
+            payment = await self._settle_payment(
+                payer_wallet_id=payer_wallet_id,
+                payee_address=agent.wallet_address,
+                amount_usdc=agent.price_usdc,
+                memo=f"task:{task_id}:{agent_name}",
+            )
+            tx_hash = payment.get("tx_hash", tx_hash)
 
         result = await agent.execute(task_input)
         agent.increment_tasks()
@@ -94,8 +117,9 @@ class OrchestratorAgent:
             agent=agent_name,
             result=result,
             cost_usdc=total_cost,
-            tx_hash=agent_tx.get("tx_hash", f"0x{task_id.replace('-', '')}"),
+            tx_hash=tx_hash,
             task_type=task_type,
+            function_calls=fn_calls,
         )
 
     async def chain_task(

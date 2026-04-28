@@ -31,6 +31,7 @@ class TaskResponse(BaseModel):
     tx_hash: str
     task_type: str
     timestamp: str
+    gemini_function_calls: list = []
 
 
 class ChainTaskRequest(BaseModel):
@@ -94,6 +95,7 @@ async def execute_task(request: TaskRequest, db: AsyncSession = Depends(get_db))
             tx_hash=task_result.tx_hash,
             task_type=request.task_type,
             timestamp=now.isoformat(),
+            gemini_function_calls=task_result.function_calls or [],
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
