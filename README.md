@@ -75,8 +75,8 @@ AgentFlow is an autonomous AI agent economy:
 
 ### Quick Start (Docker)
 ```bash
-git clone <repo-url>
-cd agentflow
+git clone https://github.com/my5757980/arc-hackathone.git
+cd arc-hackathone
 cp .env.example .env  # fill in keys
 docker compose up
 # Browser: http://localhost:3000
@@ -155,7 +155,7 @@ agentflow/
 
 ## Circle Integration Notes
 
-- **Circle API Key:** `TEST_API_KEY:...` (developer account)
+- **Circle API Key:** supplied at runtime via `CIRCLE_API_KEY` in `.env` (testnet key from a Circle developer account — never committed)
 - **Entity Secret:** Used for RSA-OAEP signing of Developer Controlled Wallet transactions
 - **Wallet Set:** 5 wallets on ARC-TESTNET, each funded with 20 USDC via testnet faucet
 
@@ -207,4 +207,3 @@ vercel --cwd frontend
 
 Built for **Agentic Economy on Arc** Hackathon 2026
 Circle Nanopayments + Arc EVM L1 + Gemini 2.5 Flash + Circle Developer Controlled Wallets
-"# arc-hackathone" 
