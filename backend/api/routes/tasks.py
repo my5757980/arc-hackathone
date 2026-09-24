@@ -126,8 +126,10 @@ async def x402_execute_task(
     """
     x402 HTTP payment protocol endpoint.
     - No X-Payment header → returns 402 with payment requirements.
-    - X-Payment naming a real, recent, unused USDC transfer on Arc to the payee → executes the task.
-    - Anything else (forged, unpaid, underpaid, failed, stale or reused) → 402 with the reason.
+    - X-Payment naming a real, recent, unused USDC transfer on Arc to the payee, signed by the wallet
+      that paid (see backend/blockchain/x402.claim_message) → executes the task.
+    - Anything else (forged, unpaid, underpaid, failed, stale, reused or claimed by someone else) → 402
+      with the reason.
     Agent-to-agent callers use this to autonomously pay and consume services.
     """
     min_amount = 0.003

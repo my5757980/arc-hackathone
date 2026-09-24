@@ -1,4 +1,5 @@
-"""x402: a request is served only for a real, sufficient, recent, unused USDC payment on Arc.
+"""x402: a request is served only for a real, sufficient, recent, unused USDC payment on Arc, claimed
+by the wallet that paid.
 
 The Arc RPC is faked with httpx.MockTransport, so these tests need no network.
 Run from the repo root:  python -m pytest backend/tests
@@ -9,6 +10,8 @@ import time
 
 import httpx
 import pytest
+from eth_account import Account
+from eth_account.messages import encode_defunct
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from backend.blockchain import x402
@@ -17,7 +20,10 @@ from backend.db.models import X402Receipt
 pytestmark = pytest.mark.asyncio
 
 PAY_TO = "0x1919ed21ea0c7c56e2a89eb998333395fda5c81e"
-PAYER = "0x059ac920d925896cf8b08f9fe9eeae1b7ac625d7"
+PAYER_KEY = Account.from_key("0x" + "11" * 32)  # a throwaway test key, not a real wallet
+PAYER = PAYER_KEY.address.lower()
+OBSERVER_KEY = Account.from_key("0x" + "22" * 32)  # someone who only saw the payment on-chain
+SMART_ACCOUNT = "0x" + "5c" * 20  # a contract wallet (e.g. a Circle SCA), which signs via ERC-1271
 USDC = "0x3600000000000000000000000000000000000000"
 TX = "0x" + "ab" * 32
 
@@ -26,8 +32,13 @@ def header(obj) -> str:
     return base64.b64encode(json.dumps(obj).encode()).decode()
 
 
-def paid(tx=TX) -> str:
-    return header({"x402Version": 1, "scheme": "exact", "network": "arc-testnet", "payload": {"txHash": tx}})
+def sign(key, tx=TX) -> str:
+    return key.sign_message(encode_defunct(text=x402.claim_message(tx))).signature.hex()
+
+
+def paid(tx=TX, key=PAYER_KEY, signature=None) -> str:
+    payload = {"txHash": tx, "signature": signature if signature is not None else sign(key, tx)}
+    return header({"x402Version": 1, "scheme": "exact", "network": "arc-testnet", "payload": payload})
 
 
 def pad(address: str) -> str:
@@ -42,8 +53,9 @@ def receipt(*logs, status="0x1"):
     return {"status": status, "blockNumber": "0x10", "logs": list(logs)}
 
 
-def fake_arc(rcpt, *, chain_id=5042002, block_age=5, down=False) -> httpx.AsyncClient:
-    """An Arc RPC that knows one transaction, TX, mined block_age seconds ago."""
+def fake_arc(rcpt, *, chain_id=5042002, block_age=5, down=False, erc1271=None) -> httpx.AsyncClient:
+    """An Arc RPC that knows one transaction, TX, mined block_age seconds ago. SMART_ACCOUNT has code,
+    and its isValidSignature answers erc1271."""
     def handle(request: httpx.Request) -> httpx.Response:
         if down:
             return httpx.Response(503, text="unavailable")
@@ -55,6 +67,11 @@ def fake_arc(rcpt, *, chain_id=5042002, block_age=5, down=False) -> httpx.AsyncC
             result = rcpt if params[0] == TX else None
         elif method == "eth_getBlockByNumber":
             result = {"timestamp": hex(int(time.time()) - block_age)}
+        elif method == "eth_getCode":
+            result = "0x6080604052" if params[0].lower() == SMART_ACCOUNT else "0x"
+        elif method == "eth_call" and params[0]["to"].lower() == SMART_ACCOUNT:
+            assert params[0]["data"].startswith("0x1626ba7e")  # isValidSignature(bytes32,bytes)
+            result = erc1271
         else:
             return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "error": {"message": method}})
         return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": result})
@@ -88,8 +105,41 @@ async def test_a_real_payment_is_accepted():
 
 
 async def test_top_level_hash_and_upper_case_are_normalised():
-    result = await check(header({"txHash": "0x" + "AB" * 32}), fake_arc(receipt(transfer_log())))
+    x_payment = header({"txHash": "0x" + "AB" * 32, "signature": sign(PAYER_KEY)})
+    result = await check(x_payment, fake_arc(receipt(transfer_log())))
     assert result.ok and result.tx_hash == TX
+
+
+# ── Only the payer can claim a payment ─────────────────────────────────────────
+async def test_a_payment_without_the_payers_signature_is_refused():
+    """A tx hash alone proves nothing about who is asking: every hash is public on the chain."""
+    x_payment = header({"payload": {"txHash": TX}})
+    result = await check(x_payment, fake_arc(receipt(transfer_log())))
+    assert not result.ok and "signature" in result.reason
+
+
+async def test_someone_who_saw_the_payment_on_chain_cannot_claim_it():
+    result = await check(paid(key=OBSERVER_KEY), fake_arc(receipt(transfer_log())))
+    assert not result.ok and "not from the payer" in result.reason
+
+
+@pytest.mark.parametrize("junk", ["0x1234", "not hex", "0x" + "00" * 65])
+async def test_a_malformed_signature_is_refused(junk):
+    result = await check(paid(signature=junk), fake_arc(receipt(transfer_log())))
+    assert not result.ok and "not from the payer" in result.reason
+
+
+async def test_a_smart_account_payer_claims_through_erc1271():
+    rpc = fake_arc(receipt(transfer_log(frm=SMART_ACCOUNT)), erc1271="0x1626ba7e" + "00" * 28)
+    result = await check(paid(key=OBSERVER_KEY), rpc)  # the contract decides whose signature counts
+    assert result.ok, result.reason
+    assert result.payer == SMART_ACCOUNT
+
+
+async def test_a_smart_account_that_rejects_the_signature_is_refused():
+    rpc = fake_arc(receipt(transfer_log(frm=SMART_ACCOUNT)), erc1271="0xffffffff" + "00" * 28)
+    result = await check(paid(key=OBSERVER_KEY), rpc)
+    assert not result.ok and "not from the payer" in result.reason
 
 
 async def test_an_unknown_transaction_is_refused():
