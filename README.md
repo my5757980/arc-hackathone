@@ -41,7 +41,7 @@ AgentFlow is an autonomous AI agent economy:
 
 | Layer | Technology |
 |---|---|
-| Blockchain | Arc EVM L1 (Circle) — ARC-TESTNET, Chain ID 60000 |
+| Blockchain | Arc EVM L1 (Circle) — ARC-TESTNET, Chain ID 5042002 |
 | Stablecoin | USDC (native gas token on Arc) |
 | Payments | Circle Nanopayments API + Circle Dev Controlled Wallets |
 | Wallets | 5 Circle Developer Controlled Wallets (funded 20 USDC each) |
@@ -173,20 +173,20 @@ Request → /v1/nanopayments/payments (Arc testnet)
          Real 0x tx hash on Arc EVM L1 ✅
 ```
 
-**Key point:** Real USDC transfers happen onchain on Arc EVM L1 regardless of which Circle endpoint processes them. The tx hashes are verifiable on `testnet.arcscan.app`. When Nanopayments API reaches production stability, a one-line URL change activates it.
+**Key point:** Real USDC transfers happen onchain on Arc EVM L1 regardless of which Circle endpoint processes them. Real tx hashes are verifiable on `explorer.testnet.arc.io`; a payment that could not be made is shown as simulated, with no hash. When Nanopayments API reaches production stability, a one-line URL change activates it.
 
-- **x402 Protocol:** Fully implemented — `GET /api/tasks/x402` returns HTTP 402 with payment headers
+- **x402 Protocol:** `GET /api/tasks/x402` returns HTTP 402 with payment headers. `POST /api/tasks/x402-execute` serves a request only when its `X-Payment` header (base64 of `{"payload": {"txHash": "0x..."}}`) names a successful USDC transfer on Arc of at least the price to the payee, under 15 minutes old, that has not paid for a request before. All of that is read from the chain; nothing in the header is trusted but the hash.
 - **Gemini Function Calling:** Gemini autonomously calls `route_to_agent()` and `initiate_payment()` as Circle API tools — see `POST /api/tasks` response field `gemini_function_calls`
-- **Arc EVM:** Chain ID 60000, RPC `https://rpc.arc.circle.com/testnet`
+- **Arc EVM:** Chain ID 5042002, RPC `https://rpc.testnet.arc.network`, USDC `0x3600000000000000000000000000000000000000` (6 decimals)
 - **Gas format (Arc-specific):** Top-level `gasLimit=100000, priorityFee=1, maxFee=25` (EIP-1559 style — Arc testnet requires this, not the nested `fee.config.feeLevel` format shown in generic Circle docs)
 
 ---
 
 ## Verify Transactions On-Chain
 
-- **Arc Testnet Explorer (Blockscout):** https://testnet.arcscan.app
+- **Arc Testnet Explorer (Blockscout):** https://explorer.testnet.arc.io
 - **Circle Console:** https://console.circle.com (Wallet Set → Transactions)
-- All tx hashes in the live feed link directly to `testnet.arcscan.app/tx/<hash>`
+- Real tx hashes in the live feed link to `explorer.testnet.arc.io/tx/<hash>`; simulated payments have no hash and no link
 
 ---
 

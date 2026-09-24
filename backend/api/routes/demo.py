@@ -1,6 +1,5 @@
 """Demo runner — 55 autonomous Arc transactions with real Circle DCW transfers + live Gemini AI."""
 import asyncio
-import hashlib
 import os
 import random
 import uuid
@@ -125,8 +124,8 @@ async def _fire_circle_transfer(agent_name: str, amount: float, task_type: str, 
             "real": result.get("state") not in ("simulated", "PENDING"),
         }
     except Exception:
-        fake_hash = "0x" + hashlib.sha256(f"{idempotency_key}{agent_name}{idx}".encode()).hexdigest()
-        return {"tx_hash": fake_hash, "circle_tx_id": idempotency_key, "state": "simulated", "real": False}
+        # No payment happened: say so, and never invent a hash that looks like an Arc transaction.
+        return {"tx_hash": None, "circle_tx_id": idempotency_key, "state": "simulated", "real": False}
 
 
 async def run_demo_transactions(count: int):

@@ -1,7 +1,6 @@
 """Circle Developer Controlled Wallets — real Arc onchain transfers via entity secret."""
 import asyncio
 import base64
-import hashlib
 import os
 import uuid
 
@@ -184,12 +183,10 @@ class CircleWalletsClient:
                 source_wallet_id, dest_address, amount_usdc, idempotency_key
             )
         except Exception as e:
-            fake_hash = "0x" + hashlib.sha256(
-                f"{idempotency_key}{dest_address}{amount_usdc}".encode()
-            ).hexdigest()
+            # No payment happened: say so, and never invent a hash that looks like an Arc transaction.
             return {
                 "id": idempotency_key,
-                "txHash": fake_hash,
+                "txHash": None,
                 "state": "simulated",
                 "amount_usdc": amount_usdc,
                 "error": str(e)[:100],

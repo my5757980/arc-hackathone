@@ -9,7 +9,7 @@ interface Transaction {
   from_agent: string;
   to_agent: string;
   amount_usdc: number;
-  tx_hash: string;
+  tx_hash: string | null;
   circle_tx_id?: string;
   task_type: string;
   task_result?: string;
@@ -86,9 +86,11 @@ export default function Dashboard() {
     setDemoProgress(0);
   }, []);
 
-  const shortHash = (h: string) => (h ? h.slice(0, 8) + "..." + h.slice(-6) : "pending");
+  const shortHash = (h: string | null) => (h ? h.slice(0, 8) + "..." + h.slice(-6) : "—");
+  // Only a real Arc transaction hash gets an explorer link; simulated payments have none.
+  const isArcTxHash = (h: string | null): h is string => !!h && /^0x[0-9a-fA-F]{64}$/.test(h);
   const totalUSDC = transactions.reduce((s, t) => s + (t.amount_usdc || 0), 0);
-  const realCount = transactions.filter((t) => t.real_onchain || (t.status !== "simulated")).length;
+  const realCount = transactions.filter((t) => t.real_onchain || (t.status !== "simulated" && isArcTxHash(t.tx_hash))).length;
 
   const dark = "#0a0a0f";
   const card = { background: "#0f0f1a", border: "1px solid #1e1e3f", borderRadius: "8px" };
@@ -279,15 +281,21 @@ export default function Dashboard() {
                       ${tx.amount_usdc?.toFixed(4)}
                     </td>
                     <td style={{ padding: "7px 12px", fontFamily: "monospace" }}>
-                      <a
-                        href={`https://testnet.arcscan.app/tx/${tx.tx_hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: "#00e5ff", textDecoration: "none" }}
-                        title={tx.tx_hash}
-                      >
-                        {shortHash(tx.tx_hash)}
-                      </a>
+                      {isArcTxHash(tx.tx_hash) ? (
+                        <a
+                          href={`https://explorer.testnet.arc.io/tx/${tx.tx_hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: "#00e5ff", textDecoration: "none" }}
+                          title={tx.tx_hash}
+                        >
+                          {shortHash(tx.tx_hash)}
+                        </a>
+                      ) : (
+                        <span style={{ color: "#6b7280" }} title={tx.tx_hash ?? "no on-chain transaction"}>
+                          {shortHash(tx.tx_hash)}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: "7px 12px" }}>
                       <span style={{

@@ -23,6 +23,17 @@ class Transaction(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 
+class X402Receipt(Base):
+    """An on-chain payment already spent on an x402 request. The hash is the key, so each pays once."""
+    __tablename__ = "x402_receipts"
+
+    tx_hash: Mapped[str] = mapped_column(String(66), primary_key=True)
+    payer: Mapped[str] = mapped_column(String(42), nullable=True)
+    amount_usdc: Mapped[float] = mapped_column(Numeric(18, 8), nullable=False)
+    service: Mapped[str] = mapped_column(String(50), nullable=True)
+    consumed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
 class AgentWallet(Base):
     __tablename__ = "agent_wallets"
 

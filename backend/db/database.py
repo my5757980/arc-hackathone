@@ -32,6 +32,6 @@ async def get_db():
 
 
 async def init_db():
-    from .models import Transaction, AgentWallet
+    from .models import Transaction, AgentWallet, X402Receipt
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

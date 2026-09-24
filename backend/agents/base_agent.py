@@ -220,12 +220,11 @@ async def _execute_circle_function(name: str, args: dict) -> dict:
                 "to_agent": to_agent,
                 "to_address": dest_addr,
                 "status": result["state"],
-                "blockchain": "Arc EVM L1 (Chain ID 60000)",
+                "blockchain": "Arc EVM L1 (Chain ID 5042002)",
             }
         except Exception as e:
-            import hashlib
             return {
-                "tx_hash": "0x" + hashlib.sha256(f"{to_agent}{amount}".encode()).hexdigest(),
+                "tx_hash": None,  # no payment happened; never invent a hash that looks like one
                 "amount_usdc": amount,
                 "to_agent": to_agent,
                 "status": "simulated",
@@ -265,9 +264,10 @@ class TaskResult:
     agent: str
     result: str
     cost_usdc: float
-    tx_hash: str
+    tx_hash: str | None  # None when no payment reached the chain
     task_type: str
     function_calls: list = None
+    payment_status: str = "unknown"
 
     def __post_init__(self):
         if self.function_calls is None:

@@ -18,6 +18,11 @@ from ..blockchain.circle_wallets import CircleWalletsClient
 
 ROUTING_FEE = 0.001  # $0.001 USDC routing fee
 
+
+def _payment_status(payment: dict, default: str = "unknown") -> str:
+    """The payment layer's state, sized for Transaction.status (String(20)); Circle states can be longer."""
+    return str(payment.get("status") or default)[:20]
+
 TASK_TYPE_MAP = {
     "analyze": "DataAnalyst",
     "data": "DataAnalyst",
@@ -85,9 +90,9 @@ class OrchestratorAgent:
             from .base_agent import gemini_function_calling_round
             _, fn_calls = await gemini_function_calling_round(routing_prompt)
 
-        # Extract agent + tx_hash from Gemini function call results
+        # Extract agent + payment from Gemini function call results
         agent_name = self._detect_agent(task_type)
-        tx_hash = f"0x{task_id.replace('-', '')}"
+        tx_hash, payment_status = None, "unknown"
 
         for call in fn_calls:
             if call["function"] == "route_to_agent":
@@ -95,7 +100,8 @@ class OrchestratorAgent:
                 if routed in self._agents:
                     agent_name = routed
             elif call["function"] == "initiate_payment":
-                tx_hash = call["result"].get("tx_hash", tx_hash)
+                tx_hash = call["result"].get("tx_hash")
+                payment_status = _payment_status(call["result"])
 
         agent = self._agents.get(agent_name) or self._agents.get("DataAnalyst")
         total_cost = self._routing_fee + agent.price_usdc
@@ -108,7 +114,8 @@ class OrchestratorAgent:
                 amount_usdc=agent.price_usdc,
                 memo=f"task:{task_id}:{agent_name}",
             )
-            tx_hash = payment.get("tx_hash", tx_hash)
+            tx_hash = payment.get("tx_hash")
+            payment_status = _payment_status(payment)
 
         result = await agent.execute(task_input)
         agent.increment_tasks()
@@ -120,6 +127,7 @@ class OrchestratorAgent:
             tx_hash=tx_hash,
             task_type=task_type,
             function_calls=fn_calls,
+            payment_status=payment_status,
         )
 
     async def chain_task(
@@ -173,7 +181,8 @@ class OrchestratorAgent:
                     "payer": "User",
                     "payee": "DataAnalyst",
                     "amount_usdc": analyst.price_usdc,
-                    "tx_hash": analyst_tx.get("tx_hash", ""),
+                    "tx_hash": analyst_tx.get("tx_hash"),
+                    "status": _payment_status(analyst_tx),
                     "result": analysis,
                     "description": "User pays DataAnalyst for analysis",
                 },
@@ -182,7 +191,8 @@ class OrchestratorAgent:
                     "payer": "DataAnalyst",
                     "payee": "ContentWriter",
                     "amount_usdc": writer.price_usdc,
-                    "tx_hash": writer_tx.get("tx_hash", ""),
+                    "tx_hash": writer_tx.get("tx_hash"),
+                    "status": _payment_status(writer_tx),
                     "result": report,
                     "description": "DataAnalyst autonomously pays ContentWriter for report",
                 },
@@ -208,6 +218,5 @@ class OrchestratorAgent:
                 memo=memo,
             )
         except Exception:
-            import hashlib
-            fake_hash = "0x" + hashlib.sha256(memo.encode()).hexdigest()
-            return {"tx_hash": fake_hash, "status": "simulated", "amount_usdc": amount_usdc}
+            # No payment happened: say so, and never invent a hash that looks like an Arc transaction.
+            return {"tx_hash": None, "status": "simulated", "amount_usdc": amount_usdc}
